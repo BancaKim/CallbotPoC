@@ -14,6 +14,8 @@ transformers
 # LangChain 관련
 langchain
 langchain-community
+langchain-core
+langchain-text-splitters
 faiss-cpu
 
 # PDF 처리

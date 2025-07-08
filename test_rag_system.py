@@ -77,7 +77,7 @@ async def test_document_addition():
     print("-" * 30)
     
     try:
-        from langchain.schema import Document
+        from langchain_core.documents import Document
         
         rag = RAGSystem()
         await rag.initialize_documents()

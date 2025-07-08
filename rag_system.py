@@ -6,12 +6,11 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 # LangChain imports
-from langchain.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import FAISS
-from langchain.schema import Document
-from langchain.retrievers import VectorStoreRetriever
+from langchain_community.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_core.documents import Document
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,6 @@ class RAGSystem:
         self.docs_dir = docs_dir
         self.embeddings_model = None
         self.vectorstore = None
-        self.retriever = None
         self.documents = []
         self.vectorstore_cache_path = "vectorstore_cache"
         
@@ -54,12 +52,7 @@ class RAGSystem:
                 await self._process_documents()
                 await self._save_vectorstore_cache()
             
-            # 리트리버 설정
             if self.vectorstore:
-                self.retriever = VectorStoreRetriever(
-                    vectorstore=self.vectorstore,
-                    search_kwargs={"k": 5}
-                )
                 logger.info(f"총 {self.vectorstore.index.ntotal}개의 문서 벡터가 로드되었습니다.")
             
         except Exception as e:
@@ -135,28 +128,22 @@ class RAGSystem:
     
     async def search_documents(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """쿼리와 관련된 문서들을 검색합니다."""
-        if not self.retriever:
+        if not self.vectorstore:
             logger.warning("벡터 저장소가 초기화되지 않았습니다.")
             return []
         
         try:
-            # 검색 파라미터 업데이트
-            self.retriever.search_kwargs = {"k": top_k}
-            
-            # 문서 검색
-            relevant_docs = self.retriever.get_relevant_documents(query)
+            # FAISS를 사용한 유사도 검색 (점수 포함)
+            relevant_docs_with_scores = self.vectorstore.similarity_search_with_score(query, k=top_k)
             
             # 결과 포맷팅
             results = []
-            for doc in relevant_docs:
-                # 유사도 점수 계산 (선택사항)
-                score = await self._calculate_similarity_score(query, doc.page_content)
-                
+            for doc, score in relevant_docs_with_scores:
                 result = {
                     "title": doc.metadata.get("source_file", "Unknown"),
                     "content": doc.page_content,
                     "source": doc.metadata.get("source_path", ""),
-                    "score": score,
+                    "score": float(1.0 - score),  # FAISS는 거리를 반환하므로 유사도로 변환
                     "metadata": doc.metadata
                 }
                 results.append(result)
@@ -168,27 +155,7 @@ class RAGSystem:
             logger.error(f"문서 검색 오류: {str(e)}")
             return []
     
-    async def _calculate_similarity_score(self, query: str, content: str) -> float:
-        """쿼리와 문서 간의 유사도 점수를 계산합니다."""
-        try:
-            # 간단한 유사도 계산 (실제로는 벡터 저장소에서 점수를 받아올 수 있음)
-            query_embedding = self.embeddings_model.embed_query(query)
-            content_embedding = self.embeddings_model.embed_query(content)
-            
-            # 코사인 유사도 계산
-            import numpy as np
-            from sklearn.metrics.pairwise import cosine_similarity
-            
-            similarity = cosine_similarity(
-                [query_embedding], 
-                [content_embedding]
-            )[0][0]
-            
-            return float(similarity)
-            
-        except Exception as e:
-            logger.warning(f"유사도 점수 계산 오류: {str(e)}")
-            return 0.5  # 기본값
+
     
     async def _save_vectorstore_cache(self):
         """벡터 저장소를 캐시로 저장합니다."""
@@ -295,7 +262,7 @@ class RAGSystem:
     
     def create_retrieval_chain(self):
         """검색 체인을 생성합니다 (LangChain 체인과 함께 사용)"""
-        if not self.retriever:
-            raise ValueError("리트리버가 초기화되지 않았습니다.")
+        if not self.vectorstore:
+            raise ValueError("벡터 저장소가 초기화되지 않았습니다.")
         
-        return self.retriever 
+        return self.vectorstore.as_retriever(search_kwargs={"k": 5}) 
