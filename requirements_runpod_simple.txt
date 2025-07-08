@@ -1,0 +1,41 @@
+# 필수 패키지만 설치 (충돌 방지)
+
+# FastAPI 및 웹 서버
+fastapi
+uvicorn[standard]
+python-multipart
+
+# AI 모델 관련  
+openai-whisper
+sentence-transformers
+torch
+transformers
+
+# LangChain 관련
+langchain
+langchain-community
+faiss-cpu
+
+# PDF 처리
+PyPDF2
+
+# 기본 계산 라이브러리
+scikit-learn
+numpy
+
+# TTS
+gTTS
+
+# 유틸리티
+python-dotenv
+pydantic
+requests
+
+# 로깅
+loguru
+
+# 메모리 모니터링
+psutil
+
+# vLLM (GPU가 있는 경우만)
+# vllm  # GPU 환경에서만 주석 해제 

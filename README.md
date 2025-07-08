@@ -11,7 +11,7 @@
 - **TTS**: Google Text-to-Speech (gTTS)
 - **백엔드**: FastAPI (Runpod 배포)
 - **프론트엔드**: Streamlit (로컬 실행)
-- **RAG**: PDF 문서 기반 검색 증강 생성
+- **RAG**: LangChain + FAISS 기반 검색 증강 생성
 
 ### 시스템 아키텍처
 ```
@@ -26,6 +26,21 @@
                               ↓
                          [gTTS TTS]
 ```
+
+## 🧪 RAG 시스템 테스트
+
+새로운 LangChain 기반 RAG 시스템을 테스트하려면:
+
+```bash
+# 의존성 설치 후
+python test_rag_system.py
+```
+
+이 스크립트는 다음을 테스트합니다:
+- ✅ 문서 로딩 및 벡터 저장소 생성
+- ✅ 문서 검색 기능
+- ✅ 새 문서 추가 기능
+- ✅ LangChain 체인 생성
 
 ## 🚀 설치 및 실행
 
